@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/client';
 
 interface AddBookmarkFormProps {
     userId: string;
+    onBookmarkAdded?: () => void;
 }
 
-export default function AddBookmarkForm({ userId }: AddBookmarkFormProps) {
+export default function AddBookmarkForm({ userId, onBookmarkAdded }: AddBookmarkFormProps) {
     const [url, setUrl] = useState('');
     const [title, setTitle] = useState('');
     const [loading, setLoading] = useState(false);
@@ -56,6 +57,11 @@ export default function AddBookmarkForm({ userId }: AddBookmarkFormProps) {
             // Clear form
             setUrl('');
             setTitle('');
+
+            // Notify parent component to refresh the list
+            if (onBookmarkAdded) {
+                onBookmarkAdded();
+            }
         } catch (err) {
             console.error('Error adding bookmark:', err);
             setError('Failed to add bookmark. Please try again.');

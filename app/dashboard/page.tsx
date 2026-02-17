@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import BookmarkList from '@/components/BookmarkList';
-import AddBookmarkForm from '@/components/AddBookmarkForm';
+import DashboardContent from '@/components/DashboardContent';
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -59,15 +58,8 @@ export default async function DashboardPage() {
                     </div>
                 </header>
 
-                {/* Add Bookmark Form */}
-                <div className="animate-slide-up">
-                    <AddBookmarkForm userId={user.id} />
-                </div>
-
-                {/* Bookmarks List */}
-                <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                    <BookmarkList userId={user.id} />
-                </div>
+                {/* Dashboard Content (Add Form + Bookmarks List) */}
+                <DashboardContent userId={user.id} />
             </div>
         </div>
     );

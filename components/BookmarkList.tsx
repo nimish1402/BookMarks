@@ -6,76 +6,43 @@ import type { Bookmark } from '@/types/database.types';
 
 interface BookmarkListProps {
     userId: string;
+    refreshTrigger?: number;
 }
 
-export default function BookmarkList({ userId }: BookmarkListProps) {
+export default function BookmarkList({ userId, refreshTrigger }: BookmarkListProps) {
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const supabase = createClient();
 
-    useEffect(() => {
-        // Fetch initial bookmarks
-        const fetchBookmarks = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('bookmarks')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .order('created_at', { ascending: false });
+    const fetchBookmarks = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('bookmarks')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
 
-                if (error) {
-                    console.error('Error fetching bookmarks:', error);
-                    // Check if it's a table not found error
-                    if (error.message?.includes('relation') || error.code === '42P01') {
-                        console.error('⚠️ Database tables not found. Please run the SQL setup scripts in Supabase.');
-                    }
-                } else {
-                    setBookmarks(data || []);
+            if (error) {
+                console.error('Error fetching bookmarks:', error);
+                // Check if it's a table not found error
+                if (error.message?.includes('relation') || error.code === '42P01') {
+                    console.error('⚠️ Database tables not found. Please run the SQL setup scripts in Supabase.');
                 }
-            } catch (err) {
-                console.error('Error fetching bookmarks:', err);
-            } finally {
-                setLoading(false);
+            } else {
+                setBookmarks(data || []);
             }
-        };
+        } catch (err) {
+            console.error('Error fetching bookmarks:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchBookmarks();
-
-        // Set up real-time subscription
-        const channel = supabase
-            .channel('bookmarks_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'bookmarks',
-                    filter: `user_id=eq.${userId}`,
-                },
-                (payload: { eventType: string; new: Bookmark; old: { id: string } }) => {
-                    if (payload.eventType === 'INSERT') {
-                        setBookmarks((current) => [payload.new as Bookmark, ...current]);
-                    } else if (payload.eventType === 'DELETE') {
-                        setBookmarks((current) =>
-                            current.filter((bookmark) => bookmark.id !== payload.old.id)
-                        );
-                    } else if (payload.eventType === 'UPDATE') {
-                        setBookmarks((current) =>
-                            current.map((bookmark) =>
-                                bookmark.id === payload.new.id ? (payload.new as Bookmark) : bookmark
-                            )
-                        );
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [userId, supabase]);
+    }, [userId, refreshTrigger]);
 
     const handleDelete = async (id: string) => {
         setDeletingId(id);
@@ -83,6 +50,9 @@ export default function BookmarkList({ userId }: BookmarkListProps) {
             const { error } = await supabase.from('bookmarks').delete().eq('id', id);
 
             if (error) throw error;
+
+            // Refresh the list after deletion
+            await fetchBookmarks();
         } catch (err) {
             console.error('Error deleting bookmark:', err);
             alert('Failed to delete bookmark. Please try again.');
