@@ -42,6 +42,7 @@ export default function BookmarkList({ userId, refreshTrigger }: BookmarkListPro
 
     useEffect(() => {
         fetchBookmarks();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, refreshTrigger]);
 
     const handleDelete = async (id: string) => {

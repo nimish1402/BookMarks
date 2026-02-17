@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { Database } from '@/types/database.types';
 
 interface AddBookmarkFormProps {
     userId: string;
@@ -37,11 +38,16 @@ export default function AddBookmarkForm({ userId, onBookmarkAdded }: AddBookmark
         setLoading(true);
 
         try {
-            const { error: insertError } = await supabase.from('bookmarks').insert({
+            const newBookmark: Database['public']['Tables']['bookmarks']['Insert'] = {
                 user_id: userId,
                 url: url.trim(),
                 title: title.trim(),
-            });
+            };
+
+            const { error: insertError } = await supabase
+                .from('bookmarks')
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .insert(newBookmark as any);
 
             if (insertError) {
                 console.error('Error adding bookmark:', insertError);
